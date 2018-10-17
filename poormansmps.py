@@ -38,8 +38,8 @@ def compress(mps, Dcut):
         A=mps[site].view(l*2,r) # A is a matrix unfolded from the current tensor
         Q,R=torch.qr(A)
         s = R.norm()
-        res += math.log(s)
-        R/=s # devided by norm
+        res = res + torch.log(s)
+        R = R/s # devided by norm
         mps[site] = Q.contiguous().view(l,2,-1)
         mps[site+1] = (R@mps[site+1].view(r,-1)).view(-1,2,mps.bdim[site+1])
         mps.bdim[site] = Q.shape[1] 
@@ -72,17 +72,17 @@ def overlap(mps1, mps2, site=None, op=None):
 
     for i in range(1, mps1.L):
         if (site!=i):
-            E = torch.einsum('ab,ade,bdf->ef', E, mps1[i], mps2[i])
+            E = torch.einsum('ab,ade,bdf->ef', (E, mps1[i], mps2[i]))
         else:
-            E = torch.einsum('ab,ame,mn,bnf->ef', E, mps1[i], op, mps2[i])
-    return E.item()
+            E = torch.einsum('ab,ame,mn,bnf->ef', (E, mps1[i], op, mps2[i]))
+    return E.sum()
 
 def multiply(mpo, mps):
     for site in range(mps.L):
-        mps[site] = torch.einsum('ludr,adb->laurb', mpo[site], mps[site])
+        mps[site] = torch.einsum('ludr,adb->laurb', (mpo[site], mps[site]))
         mps.bdim[site-1] = mpo.bdim[site-1]*mps.bdim[site-1] # only change left 
         mps[site] = mps[site].contiguous().view(mps.bdim[site-1], 2, -1)
-    return None 
+    return None
 
 if __name__=='__main__':
     from copy import copy 

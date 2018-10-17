@@ -41,9 +41,9 @@ def contract(L, K, Dcut):
     res = 0.0
     for i in range(L//2-1):
         multiply(mpo, mps)
-        res += compress(mps, Dcut)
+        res = res + compress(mps, Dcut)
     ovlp = overlap(mps, mps)
-    lnZ = 2*res + math.log(ovlp)
+    lnZ = torch.log(ovlp) + 2*res 
     En = overlap(mps, mps, L//2, E)/ovlp  # energy measured at a bond in the system center
 
     return lnZ, En
@@ -51,10 +51,10 @@ def contract(L, K, Dcut):
 if __name__=='__main__':
     import numpy as np
     Dcut = 64
-    L = 4
+    L = 6
 
     for beta in np.linspace(0, 2.0, 21):
-        K = torch.tensor([beta]) 
+        K = torch.tensor([beta]).requires_grad_()
         lnZ, En = contract(L, K, Dcut)
-        print ('{:.1f} {:.8f} {:.8f}'.format(beta, lnZ/L**2, En))
-
+        lnZ.backward()
+        print ('{:.1f} {:.8f} {:.8f} {:.8f}'.format(beta, lnZ/L**2, En, K.grad.item()))
