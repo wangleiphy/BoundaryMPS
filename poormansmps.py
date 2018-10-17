@@ -1,4 +1,5 @@
 import torch 
+import math 
 
 class MPS(object):
     def __init__(self,L,D=1):
@@ -28,7 +29,7 @@ def compress(mps, Dcut):
     '''
     cut a mps up to given bond dimension
     '''
-    
+    res = 0.0
     #from left to right, QR 
     for site in range(mps.L-1):
         l=mps.bdim[site-1] # left bond dimension
@@ -36,12 +37,14 @@ def compress(mps, Dcut):
 
         A=mps[site].view(l*2,r) # A is a matrix unfolded from the current tensor
         Q,R=torch.qr(A)
-        R/=R.norm() # devided by norm
+        s = R.norm()
+        res += math.log(s)
+        R/=s # devided by norm
         mps[site] = Q.contiguous().view(l,2,-1)
         mps[site+1] = (R@mps[site+1].view(r,-1)).view(-1,2,mps.bdim[site+1])
         mps.bdim[site] = Q.shape[1] 
     
-    print (mps.bdim)
+    #print (mps.bdim)
     #from right to left, svd
     for site in reversed(range(1, mps.L)):
         l = mps.bdim[site-1]
@@ -54,8 +57,9 @@ def compress(mps, Dcut):
         mps[site-1] = (mps[site-1]@ U[:,:Dnew] *S[:Dnew]).view(-1, 2, Dnew)
         mps.bdim[site-1] = Dnew
 
-    print(mps.bdim)
-    return None 
+    #print(mps.bdim)
+    #print ('addition:', res)
+    return res
 
 def overlap(mps1, mps2):
     E = mps1[0].view(2, mps1.bdim[0]).t() @ mps2[0].view(2, mps2.bdim[0])
