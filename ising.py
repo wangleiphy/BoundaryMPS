@@ -13,6 +13,7 @@ def contract(L, K, Dcut):
     c = torch.sqrt(torch.cosh(K))
     s = torch.sqrt(torch.sinh(K))
     M = torch.stack([torch.cat([c, s]), torch.cat([c, -s])])
+    E = torch.tensor([[(s/c)**2, 0.], [0., (c/s)**2]]) # observable tensor for energy
     
     T2 = torch.einsum('ai,aj->ij', (M, M))
     T3 = torch.einsum('ai,aj,ak->ijk', (M, M, M))
@@ -41,15 +42,19 @@ def contract(L, K, Dcut):
     for i in range(L//2-1):
         multiply(mpo, mps)
         res += compress(mps, Dcut)
-    return (2*res + math.log(overlap(mps, mps)))
+    ovlp = overlap(mps, mps)
+    lnZ = 2*res + math.log(ovlp)
+    En = overlap(mps, mps, L//2, E)/ovlp  # energy measured at a bond in the system center
+
+    return lnZ, En
 
 if __name__=='__main__':
     import numpy as np
-    Dcut = 16
-    L = 8
+    Dcut = 64
+    L = 4
 
     for beta in np.linspace(0, 2.0, 21):
         K = torch.tensor([beta]) 
-        lnZ = contract(L, K, Dcut)
-        print ('{:.1f} {:.8f}'.format(beta, lnZ/L**2))
+        lnZ, En = contract(L, K, Dcut)
+        print ('{:.1f} {:.8f} {:.8f}'.format(beta, lnZ/L**2, En))
 

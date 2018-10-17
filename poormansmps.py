@@ -61,10 +61,20 @@ def compress(mps, Dcut):
     #print ('addition:', res)
     return res
 
-def overlap(mps1, mps2):
-    E = mps1[0].view(2, mps1.bdim[0]).t() @ mps2[0].view(2, mps2.bdim[0])
-    for site in range(1, mps1.L):
-        E = torch.einsum('ab,ade,bdf->ef', E, mps1[site], mps2[site])
+def overlap(mps1, mps2, site=None, op=None):
+    '''
+    if site and op is present, one sanwitch a site operator between the two mps
+    '''
+    if site!=0:
+        E = mps1[0].view(2, mps1.bdim[0]).t() @ mps2[0].view(2, mps2.bdim[0])
+    else:
+        E = mps1[0].view(2, mps1.bdim[0]).t() @ op @ mps2[0].view(2, mps2.bdim[0])
+
+    for i in range(1, mps1.L):
+        if (site!=i):
+            E = torch.einsum('ab,ade,bdf->ef', E, mps1[i], mps2[i])
+        else:
+            E = torch.einsum('ab,ame,mn,bnf->ef', E, mps1[i], op, mps2[i])
     return E.item()
 
 def multiply(mpo, mps):
