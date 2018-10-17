@@ -57,4 +57,6 @@ if __name__=='__main__':
         K = torch.tensor([beta]).requires_grad_()
         lnZ, En = contract(L, K, Dcut)
         lnZ.backward()
-        print ('{:.1f} {:.8f} {:.8f} {:.8f}'.format(beta, lnZ/L**2, En, K.grad.item()))
+        print ('{:.1f} {:.8f} {:.8f} {:.8f}'.format(beta, lnZ/L**2, En, K.grad.item()/L**2))
+
+        #(beta, free energy per site, energy computed at a bond via measurement, energy per site computed via BP)

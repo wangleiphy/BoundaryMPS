@@ -30,13 +30,15 @@ def compress(mps, Dcut):
     cut a mps up to given bond dimension
     '''
     res = 0.0
-    #from left to right, QR 
+
+    #from left to right, svd 
     for site in range(mps.L-1):
         l=mps.bdim[site-1] # left bond dimension
         r=mps.bdim[site]   # current bond dimension
 
         A=mps[site].view(l*2,r) # A is a matrix unfolded from the current tensor
-        Q,R=torch.qr(A)
+        Q, S, V = torch.svd(A) # here we intent to do QR = A. However there is no BP, so we do SVD instead 
+        R = (V*S).t()
         s = R.norm()
         res = res + torch.log(s)
         R = R/s # devided by norm
