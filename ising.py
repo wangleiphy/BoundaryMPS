@@ -66,7 +66,8 @@ if __name__=='__main__':
     for beta in np.linspace(0, 2.0, 21):
         K = torch.tensor([beta], dtype=dtype, device=device).requires_grad_()
         lnZ, En = contract(L, K, Dcut)
-        lnZ.backward()
-        print ('{:.1f} {:.8f} {:.8f} {:.8f}'.format(beta, lnZ/L**2, En, K.grad.item()/L**2))
+        dlnZ = torch.autograd.grad(lnZ, K,create_graph=True)[0] #  En = -d lnZ / d beta
+        dlnZ2 = torch.autograd.grad(dlnZ, K)[0] # Cv = beta^2 * d^2 lnZ / d beta^2
+        print ('{:.1f} {:.8f} {:.8f} {:.8f} {:.8f}'.format(beta, lnZ.item()/L**2, -dlnZ.item()/L**2, En, dlnZ2.item()*beta**2/L**2))
 
-        #(beta, free energy per site, energy computed at a bond via measurement, energy per site computed via BP)
+        #(beta, free energy per site, energy computed at a bond via measurement, energy per site computed via BP), Cv per site computed via BP
