@@ -14,7 +14,7 @@ def contract(L, K, Dcut):
     c = torch.sqrt(torch.cosh(K))
     s = torch.sqrt(torch.sinh(K))
     M = torch.stack([torch.cat([c, s]), torch.cat([c, -s])])
-    E = torch.tensor([[(s/c)**2, 0.], [0., (c/s)**2]]) # observable tensor for energy
+    E = torch.tensor([[(s/c)**2, 0.], [0., (c/s)**2]], device=K.device) # observable tensor for energy
     
     T2 = torch.einsum('ai,aj->ij', (M, M))
     T3 = torch.einsum('ai,aj,ak->ijk', (M, M, M))
