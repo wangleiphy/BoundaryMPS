@@ -49,7 +49,7 @@ def compress_nmf(mps, Dcut):
 
     return res
 
-def compress(mps, Dcut):
+def compress(mps, Dcut, epsilon=1E-6):
     '''
     cut a mps up to given bond dimension
     '''
@@ -61,14 +61,16 @@ def compress(mps, Dcut):
         r=mps.bdim[site]   # current bond dimension
 
         A=mps[site].view(l*2,r) # A is a matrix unfolded from the current tensor
-        Q, S, V = torch.svd(A) # here we intent to do QR = A. However there is no BP, so we do SVD instead 
-        R = (V*S).t()
+        U, S, V = torch.svd(A) # here we intent to do QR = A. However there is no BP, so we do SVD instead 
+        Dnew = (S>epsilon).sum().item()
+
+        R = (V[:, :Dnew]*S[:Dnew]).t()
         s = R.norm()
         res = res + torch.log(s)
         R = R/s # devided by norm
-        mps[site] = Q.contiguous().view(l,2,-1)
+        mps[site] = U[:,:Dnew].view(l,2,Dnew)
         mps[site+1] = (R@mps[site+1].view(r,-1)).view(-1,2,mps.bdim[site+1])
-        mps.bdim[site] = Q.shape[1] 
+        mps.bdim[site] = Dnew
     
     #print (mps.bdim)
     #from right to left, svd
@@ -78,7 +80,7 @@ def compress(mps, Dcut):
 
         A = mps[site].view(l, r*2)
         U, S, V = torch.svd(A)
-        Dnew = min(Dcut, S.shape[0])
+        Dnew = min(Dcut, (S>epsilon).sum().item())
         mps[site] = V[:, :Dnew].t().view(Dnew,2,-1)
         mps[site-1] = (mps[site-1]@ U[:,:Dnew] *S[:Dnew]).view(-1, 2, Dnew)
         mps.bdim[site-1] = Dnew
