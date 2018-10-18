@@ -50,12 +50,21 @@ def contract(L, K, Dcut):
     return lnZ, En
 
 if __name__=='__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument("-float32", action='store_true', help="use float32")
+    parser.add_argument("-cuda", type=int, default=-1, help="use GPU")
+    args = parser.parse_args()
+
+    device = torch.device("cpu" if args.cuda<0 else "cuda:"+str(args.cuda))
+    dtype = torch.float32 if args.float32 else torch.float64
+
     import numpy as np
-    Dcut = 64
-    L = 16
+    Dcut = 10
+    L = 28
 
     for beta in np.linspace(0, 2.0, 21):
-        K = torch.tensor([beta]).requires_grad_()
+        K = torch.tensor([beta], dtype=dtype, device=device).requires_grad_()
         lnZ, En = contract(L, K, Dcut)
         lnZ.backward()
         print ('{:.1f} {:.8f} {:.8f} {:.8f}'.format(beta, lnZ/L**2, En, K.grad.item()/L**2))
