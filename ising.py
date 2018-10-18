@@ -2,7 +2,8 @@ import torch
 import math
 
 from poormansmps import MPS, MPO 
-from poormansmps import compress, overlap, multiply
+from poormansmps import overlap, multiply
+from poormansmps import compress as compress
 
 def contract(L, K, Dcut):
     '''
@@ -51,7 +52,7 @@ def contract(L, K, Dcut):
 if __name__=='__main__':
     import numpy as np
     Dcut = 64
-    L = 6
+    L = 16
 
     for beta in np.linspace(0, 2.0, 21):
         K = torch.tensor([beta]).requires_grad_()

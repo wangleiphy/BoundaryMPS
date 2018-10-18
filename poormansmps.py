@@ -1,5 +1,6 @@
 import torch 
 import math 
+from nmf import nmf_sklearn as nmf 
 
 class MPS(object):
     def __init__(self,L,D=1):
@@ -24,6 +25,29 @@ class MPO(object):
 
     def __setitem__(self, i, t):
         self.tensors[i] = t
+
+def compress_nmf(mps, Dcut):
+    '''
+    cut a mps up to given bond dimension
+    '''
+    res = 0.0
+
+    #from left to right, svd 
+    for site in range(mps.L-1):
+        l=mps.bdim[site-1] # left bond dimension
+        r=mps.bdim[site]   # current bond dimension
+
+        A=mps[site].view(l*2,r) # A is a matrix unfolded from the current tensor
+        Dnew = min(min(Dcut, l*2), r)
+        X, Y = nmf(A, Dnew) # here we intent to do QR = A. However there is no BP, so we do SVD instead 
+        sX = X.norm(); sY = Y.norm()
+        res = res + torch.log(sX) + torch.log(sY)
+        X = X/sX; Y = Y/sY 
+        mps[site] = X.view(l,2,-1)
+        mps[site+1] = (Y@mps[site+1].view(r,-1)).view(-1,2,mps.bdim[site+1])
+        mps.bdim[site] = X.shape[1] 
+
+    return res
 
 def compress(mps, Dcut):
     '''
